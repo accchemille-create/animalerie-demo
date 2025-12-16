@@ -448,7 +448,6 @@ function renderAdvice(){
   }
   // Show or hide admin controls depending on user isAdmin flag
   const session = load(STORE.session)
-  const users = load(STORE.users)
   const currentUser = session ? users.find(u=>u.id===session.id) : null
   const userIsAdmin = currentUser && currentUser.isAdmin === true
   
