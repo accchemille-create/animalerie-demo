@@ -536,6 +536,10 @@ function initAuthHandlers(){
     const user = users.find(u=>u.email===email && u.password===password)
     if(user){
       save(STORE.session, {id:user.id, email:user.email, name:user.name})
+      // Clear admin session for non-admin users
+      if(!user.isAdmin){
+        localStorage.removeItem(ADMIN_SESSION)
+      }
       showMainApp(true)
       initMainHandlers()
       renderProfile()
@@ -597,6 +601,8 @@ function initAuthHandlers(){
     users.push(newUser)
     saveData(STORE.users, users)
     save(STORE.session, {id:newUser.id, email:newUser.email, pseudo:newUser.pseudo})
+    // Clear admin session for new non-admin user
+    localStorage.removeItem(ADMIN_SESSION)
     showMainApp(true)
     initMainHandlers()
     renderProfile()
