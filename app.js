@@ -462,6 +462,8 @@ function renderAdvice(){
   if(adminControls){
     if(!userIsAdmin){
       adminControls.style.display = 'none'
+      // Also hide add form for non-admin users
+      if(addForm) addForm.style.display = 'none'
     } else {
       adminControls.style.display = 'block'
       // Show/hide forms based on admin session
