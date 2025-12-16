@@ -322,7 +322,10 @@ function renderProfile(){
   const users = load(STORE.users)
   const out = $('#profile')
   if(users.length===0){ out.innerHTML = '<p>Aucun compte enregistré.</p>'; return }
-  const u = users[users.length-1]
+  const session = load(STORE.session)
+  if(!session){ out.innerHTML = '<p>Non connecté.</p>'; return }
+  const u = users.find(user=>user.id===session.id)
+  if(!u){ out.innerHTML = '<p>Utilisateur introuvable.</p>'; return }
   let animalsHtml = 'Aucun animal.'
   if(u.animals && u.animals.length > 0){
     animalsHtml = u.animals.map(a=>`${a.name} (${a.type}${a.age ? ', ' + a.age + ' ans' : ''})`).join(', ')
@@ -333,7 +336,10 @@ function renderProfile(){
 function renderAnimalsList(){
   const users = load(STORE.users)
   if(users.length === 0) return
-  const u = users[users.length-1]
+  const session = load(STORE.session)
+  if(!session) return
+  const u = users.find(user=>user.id===session.id)
+  if(!u) return
   const list = $('#profileAnimalsList')
   if(!list) return
   list.innerHTML = ''
@@ -380,7 +386,10 @@ function addAnimalFieldProfile(){
 function renderGallery(){
   const users = load(STORE.users)
   if(users.length === 0) return
-  const u = users[users.length-1]
+  const session = load(STORE.session)
+  if(!session) return
+  const u = users.find(user=>user.id===session.id)
+  if(!u) return
   const g = $('#galleryPreview')
   if(!g) return
   g.innerHTML = ''
@@ -395,7 +404,10 @@ function renderGallery(){
     $all('.thumbDel').forEach(b=>b.addEventListener('click', e=>{
       const i = parseInt(b.dataset.idx)
       const users2 = load(STORE.users)
-      const u2 = users2[users2.length-1]
+      const session2 = load(STORE.session)
+      if(!session2) return
+      const u2 = users2.find(user=>user.id===session2.id)
+      if(!u2) return
       u2.gallery.splice(i,1)
       save(STORE.users, users2)
       renderGallery()
@@ -403,7 +415,9 @@ function renderGallery(){
     $all('.thumbSet').forEach(b=>b.addEventListener('click', e=>{
       const i = parseInt(b.dataset.idx)
       const users2 = load(STORE.users)
-      const u2 = users2[users2.length-1]
+      const session2 = load(STORE.session)
+      if(!session2) return
+      const u2 = users2.find(user=>user.id===session2.id)
       if(u2 && u2.gallery && u2.gallery[i]){
         u2.profilePhoto = u2.gallery[i]
         save(STORE.users, users2)
@@ -762,7 +776,9 @@ function initMainHandlers(){
       try{
         const data = await readFileAsDataURL(f)
         const users = load(STORE.users)
-        const last = users[users.length-1]
+        const session = load(STORE.session)
+        if(!session) return
+        const last = users.find(user=>user.id===session.id)
         if(last){ last.profilePhoto = data; saveData(STORE.users, users); renderGallery() }
       }catch(err){ console.error(err) }
     })
@@ -775,7 +791,9 @@ function initMainHandlers(){
       const files = Array.from(e.target.files || [])
       if(files.length===0) return
       const users = load(STORE.users)
-      const last = users[users.length-1]
+      const session = load(STORE.session)
+      if(!session) return
+      const last = users.find(user=>user.id===session.id)
       if(!last) return
       last.gallery = last.gallery || []
       const MAX_IMAGES = 20
@@ -813,7 +831,9 @@ function initMainHandlers(){
     })
 
     const users = load(STORE.users)
-    const lastUser = users[users.length-1]
+    const session = load(STORE.session)
+    if(!session) return
+    const lastUser = users.find(user=>user.id===session.id)
     if(lastUser){
       lastUser.animals = animals
       saveData(STORE.users, users)
