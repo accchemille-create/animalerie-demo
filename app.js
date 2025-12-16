@@ -319,10 +319,10 @@ function switchPanel(id){
 
 // Account
 function renderProfile(){
-        const list = load(STORE.users)
-        const u2 = list[list.length-1]
-        u2.gallery.splice(i,1)
-        saveData(STORE.users, list)
+  const users = load(STORE.users)
+  const out = $('#profile')
+  if(users.length===0){ out.innerHTML = '<p>Aucun compte enregistré.</p>'; return }
+  const u = users[users.length-1]
   let animalsHtml = 'Aucun animal.'
   if(u.animals && u.animals.length > 0){
     animalsHtml = u.animals.map(a=>`${a.name} (${a.type}${a.age ? ', ' + a.age + ' ans' : ''})`).join(', ')
@@ -331,10 +331,11 @@ function renderProfile(){
 }
 
 function renderAnimalsList(){
-        saveData(STORE.users, users2)
+  const users = load(STORE.users)
   if(users.length === 0) return
   const u = users[users.length-1]
   const list = $('#profileAnimalsList')
+  if(!list) return
   list.innerHTML = ''
   if(u.animals && u.animals.length > 0){
     u.animals.forEach(animal=>{
