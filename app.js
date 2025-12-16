@@ -446,31 +446,45 @@ function renderAdvice(){
       return `<div class='card'><h4>${a.title}</h4>${privateBadge}<p>${a.content}</p>${adminControls}</div>`
     }).join('')
   }
-  // Show or hide the add-advice form depending on admin session
+  // Show or hide admin controls depending on user isAdmin flag
+  const session = load(STORE.session)
+  const users = load(STORE.users)
+  const currentUser = session ? users.find(u=>u.id===session.id) : null
+  const userIsAdmin = currentUser && currentUser.isAdmin === true
+  
+  const adminControls = $('#adminControls')
   const addForm = $('#addAdviceForm')
   const adminLoginBtn = $('#adminLoginBtn')
   const adminLoginForm = $('#adminLoginForm')
   const adminLogoutBtn = $('#adminLogoutBtn')
   const adminMgmtDiv = $('#adminMgmt')
-  const adminListDiv = $('#adminList')
-  if(addForm){
-    if(localStorage.getItem(ADMIN_SESSION) === 'true'){
-      addForm.style.display = 'block'
-      if(adminLoginForm) adminLoginForm.style.display = 'none'
-      if(adminLogoutBtn) adminLogoutBtn.style.display = 'inline-block'
-      if(adminLoginBtn) adminLoginBtn.style.display = 'none'
-      // show change password controls when admin is connected
-      const adminChange = $('#adminChangePwd')
-      if(adminChange) adminChange.style.display = 'block'
-      if(adminMgmtDiv) adminMgmtDiv.style.display = 'block'
+  
+  // Hide entire admin section for non-admin users
+  if(adminControls){
+    if(!userIsAdmin){
+      adminControls.style.display = 'none'
     } else {
-      addForm.style.display = 'none'
-      if(adminLoginForm) adminLoginForm.style.display = 'none'
-      if(adminLogoutBtn) adminLogoutBtn.style.display = 'none'
-      if(adminLoginBtn) adminLoginBtn.style.display = 'inline-block'
-      const adminChange = $('#adminChangePwd')
-      if(adminChange) adminChange.style.display = 'none'
-      if(adminMgmtDiv) adminMgmtDiv.style.display = 'none'
+      adminControls.style.display = 'block'
+      // Show/hide forms based on admin session
+      if(addForm){
+        if(localStorage.getItem(ADMIN_SESSION) === 'true'){
+          addForm.style.display = 'block'
+          if(adminLoginForm) adminLoginForm.style.display = 'none'
+          if(adminLogoutBtn) adminLogoutBtn.style.display = 'inline-block'
+          if(adminLoginBtn) adminLoginBtn.style.display = 'none'
+          const adminChange = $('#adminChangePwd')
+          if(adminChange) adminChange.style.display = 'block'
+          if(adminMgmtDiv) adminMgmtDiv.style.display = 'block'
+        } else {
+          addForm.style.display = 'none'
+          if(adminLoginForm) adminLoginForm.style.display = 'none'
+          if(adminLogoutBtn) adminLogoutBtn.style.display = 'none'
+          if(adminLoginBtn) adminLoginBtn.style.display = 'inline-block'
+          const adminChange = $('#adminChangePwd')
+          if(adminChange) adminChange.style.display = 'none'
+          if(adminMgmtDiv) adminMgmtDiv.style.display = 'none'
+        }
+      }
     }
   }
 }
@@ -488,10 +502,15 @@ function renderPartners(){
     }).join('')
   }
 
-  // Show or hide add partner form depending on admin session
+  // Show or hide add partner form: only for admin users with active session
+  const session = load(STORE.session)
+  const users = load(STORE.users)
+  const currentUser = session ? users.find(u=>u.id===session.id) : null
+  const userIsAdmin = currentUser && currentUser.isAdmin === true
+  
   const addForm = $('#addPartnerForm')
   if(addForm){
-    if(localStorage.getItem(ADMIN_SESSION) === 'true'){
+    if(userIsAdmin && localStorage.getItem(ADMIN_SESSION) === 'true'){
       addForm.style.display = 'block'
     } else {
       addForm.style.display = 'none'
@@ -512,10 +531,15 @@ function renderEvents(){
     }).join('')
   }
 
-  // Show or hide add event form depending on admin session
+  // Show or hide add event form: only for admin users with active session
+  const session = load(STORE.session)
+  const users = load(STORE.users)
+  const currentUser = session ? users.find(u=>u.id===session.id) : null
+  const userIsAdmin = currentUser && currentUser.isAdmin === true
+  
   const addForm = $('#addEventForm')
   if(addForm){
-    if(localStorage.getItem(ADMIN_SESSION) === 'true'){
+    if(userIsAdmin && localStorage.getItem(ADMIN_SESSION) === 'true'){
       addForm.style.display = 'block'
     } else {
       addForm.style.display = 'none'
