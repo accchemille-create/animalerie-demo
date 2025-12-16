@@ -464,12 +464,17 @@ function renderAdvice(){
       adminControls.style.display = 'none'
       // Also hide add form for non-admin users
       if(addForm) addForm.style.display = 'none'
+      // Hide "Ajouter une fiche" title
+      const h3 = $('section#advice h3')
+      if(h3) h3.style.display = 'none'
     } else {
       adminControls.style.display = 'block'
       // Show/hide forms based on admin session
       if(addForm){
         if(localStorage.getItem(ADMIN_SESSION) === 'true'){
           addForm.style.display = 'block'
+          const h3 = $('section#advice h3')
+          if(h3) h3.style.display = 'block'
           if(adminLoginForm) adminLoginForm.style.display = 'none'
           if(adminLogoutBtn) adminLogoutBtn.style.display = 'inline-block'
           if(adminLoginBtn) adminLoginBtn.style.display = 'none'
@@ -478,6 +483,8 @@ function renderAdvice(){
           if(adminMgmtDiv) adminMgmtDiv.style.display = 'block'
         } else {
           addForm.style.display = 'none'
+          const h3 = $('section#advice h3')
+          if(h3) h3.style.display = 'none'
           if(adminLoginForm) adminLoginForm.style.display = 'none'
           if(adminLogoutBtn) adminLogoutBtn.style.display = 'none'
           if(adminLoginBtn) adminLoginBtn.style.display = 'inline-block'
@@ -510,11 +517,14 @@ function renderPartners(){
   const userIsAdmin = currentUser && currentUser.isAdmin === true
   
   const addForm = $('#addPartnerForm')
+  const h3 = document.querySelector('section#partners h3')
   if(addForm){
     if(userIsAdmin && localStorage.getItem(ADMIN_SESSION) === 'true'){
       addForm.style.display = 'block'
+      if(h3) h3.style.display = 'block'
     } else {
       addForm.style.display = 'none'
+      if(h3) h3.style.display = 'none'
     }
   }
 }
@@ -539,11 +549,14 @@ function renderEvents(){
   const userIsAdmin = currentUser && currentUser.isAdmin === true
   
   const addForm = $('#addEventForm')
+  const h3 = document.querySelector('section#events h3')
   if(addForm){
     if(userIsAdmin && localStorage.getItem(ADMIN_SESSION) === 'true'){
       addForm.style.display = 'block'
+      if(h3) h3.style.display = 'block'
     } else {
       addForm.style.display = 'none'
+      if(h3) h3.style.display = 'none'
     }
   }
 }
