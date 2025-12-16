@@ -286,16 +286,22 @@ function resetData(){
 
 function showMainApp(logged=false){
   // Show the main content to all visitors. If `logged` is true, set login button to logout.
-  $('#authContainer').style.display = 'none'
-  $('#mainContent').style.display = 'block'
-  $('#mainNav').style.display = 'block'
-  $('#menuBtn').style.display = 'block'
   if(logged){
+    $('#authContainer').style.display = 'none'
+    $('#mainContent').style.display = 'block'
+    $('#mainNav').style.display = 'block'
+    $('#menuBtn').style.display = 'block'
     $('#loginBtn').textContent = 'Déconnexion'
     $('#loginBtn').onclick = ()=>logout()
   } else {
+    // Not logged: show auth container, hide main content
+    $('#authContainer').style.display = 'block'
+    $('#mainContent').style.display = 'none'
+    $('#mainNav').style.display = 'none'
+    $('#menuBtn').style.display = 'none'
     $('#loginBtn').textContent = 'Connexion'
     $('#loginBtn').onclick = ()=> showAuth('login')
+    showAuth('login') // display login form by default
   }
 }
 
