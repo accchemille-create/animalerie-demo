@@ -13,6 +13,11 @@
       <div style="display:flex;gap:8px;align-items:center">
         <button id="menuBtn" style="display:none;padding:8px 12px;background:#fff;border:0;border-radius:4px;cursor:pointer;font-size:18px">☰</button>
         <button id="loginBtn" style="padding:8px 12px;background:#fff;border:0;border-radius:4px;cursor:pointer">Connexion</button>
+        <button id="exportBtn" style="padding:8px 12px;background:#eef;border:0;border-radius:4px;cursor:pointer;margin-left:6px">Exporter l'état</button>
+        <button id="importBtn" style="padding:8px 12px;background:#efe;border:0;border-radius:4px;cursor:pointer;margin-left:6px">Importer l'état</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none">
+        <button id="resetDataBtn" style="padding:8px 12px;background:#fee;border:0;border-radius:4px;cursor:pointer;margin-left:6px">Réinitialiser les données</button>
+        <button id="syncBtn" style="padding:8px 12px;background:#eff;border:1px solid #2b7a78;color:#2b7a78;border-radius:4px;cursor:pointer;margin-left:6px">⇄ Synchroniser</button>
       </div>
     </div>
     <nav id="mainNav" style="display:none;background:#fff;border-top:1px solid #e3e6ea;padding:8px 16px">
@@ -163,6 +168,7 @@
     </section>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

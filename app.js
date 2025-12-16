@@ -12,6 +12,121 @@ const ADMIN_PWD_KEY = 'petshop_admin_password' // stored admin password data (lo
 const ADMIN_SESSION = 'petshop_admin_session'
 const PBKDF2_ITER = 100000
 
+// Supabase configuration (initialisation minimale)
+const SUPABASE_URL = 'https://dsyxwboxqktwtfxigdro.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzeXh3Ym94cWt0d3RmeGlnZHJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3OTYwNDMsImV4cCI6MjA4MTM3MjA0M30.vt3nrmFEs2pCV2T-HhoBHTZCYIjcXd0F6OhmHoW0hZg'
+let supabaseClient = null
+
+function initSupabase(){
+  try{
+    if(window.supabase && typeof window.supabase.createClient === 'function'){
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      console.log('Supabase client initialisé')
+      // add a small test button to header for quick checks
+      const headerRight = document.querySelector('header div div')
+      if(headerRight && !document.getElementById('supabaseTestBtn')){
+        const btn = document.createElement('button')
+        btn.id = 'supabaseTestBtn'
+        btn.textContent = 'Tester Supabase'
+        btn.style.padding = '8px 12px'
+        btn.style.marginLeft = '6px'
+        btn.style.background = '#fff'
+        btn.style.border = '1px solid #ccc'
+        btn.style.borderRadius = '6px'
+        btn.style.cursor = 'pointer'
+        headerRight.appendChild(btn)
+        btn.addEventListener('click', async ()=>{
+          if(!supabaseClient){ alert('Supabase non initialisé.'); return }
+          try{
+            // try a lightweight select on a recommended table `app_state` if it exists
+            const { data, error } = await supabaseClient.from('app_state').select('id').limit(1)
+            if(error){
+              alert('Connexion Supabase OK, mais table `app_state` inaccessible ou non existante. Message: ' + error.message)
+            } else {
+              alert('Connexion Supabase OK — table `app_state` accessible.')
+            }
+          }catch(err){ alert('Erreur test Supabase: ' + err.message) }
+        })
+      }
+    } else {
+      console.warn('Librairie Supabase non trouvée. Assurez-vous que le CDN est inclus dans index.html')
+    }
+  }catch(err){ console.error('Erreur initialisation Supabase', err) }
+}
+
+// Supabase sync functions
+async function pushStateToSupabase(){
+  if(!supabaseClient){ console.error('Supabase non initialisé'); return false }
+  try{
+    const state = {
+      users: load(STORE.users),
+      advice: load(STORE.advice),
+      partners: load(STORE.partners),
+      events: load(STORE.events)
+    }
+    const { error } = await supabaseClient.from('app_state').update({
+      users: state.users,
+      advice: state.advice,
+      partners: state.partners,
+      events: state.events,
+      updated_at: new Date().toISOString()
+    }).eq('id', 1)
+    
+    if(error){ 
+      console.error('Erreur push Supabase:', error)
+      return false
+    }
+    console.log('État poussé vers Supabase avec succès')
+    return true
+  }catch(err){ 
+    console.error('Erreur push:', err)
+    return false
+  }
+}
+
+async function pullStateFromSupabase(){
+  if(!supabaseClient){ console.error('Supabase non initialisé'); return false }
+  try{
+    const { data, error } = await supabaseClient.from('app_state').select('users, advice, partners, events').eq('id', 1).single()
+    
+    if(error){ 
+      console.error('Erreur pull Supabase:', error)
+      return false
+    }
+    
+    if(data){
+      // Mise à jour du localStorage avec les données Supabase
+      if(data.users) save(STORE.users, data.users)
+      if(data.advice) save(STORE.advice, data.advice)
+      if(data.partners) save(STORE.partners, data.partners)
+      if(data.events) save(STORE.events, data.events)
+      console.log('État récupéré depuis Supabase avec succès')
+      return true
+    }
+    return false
+  }catch(err){ 
+    console.error('Erreur pull:', err)
+    return false
+  }
+}
+
+// Debounce sync to éviter trop d'appels successifs
+let syncTimer = null
+function queueSync(){
+  if(syncTimer) clearTimeout(syncTimer)
+  syncTimer = setTimeout(()=>{
+    pushStateToSupabase()
+  }, 800)
+}
+
+function saveData(key, data){
+  save(key, data)
+  // On ne déclenche la sync que pour les données partagées
+  if([STORE.users, STORE.advice, STORE.partners, STORE.events].includes(key)){
+    queueSync()
+  }
+}
+
 // Web Crypto helpers for PBKDF2 hashing (store salt + derived key)
 function bufToBase64(buf){
   const bytes = new Uint8Array(buf)
@@ -88,7 +203,7 @@ function compressImage(file, maxWidth=800, quality=0.6){
 // Initial sample data
 function ensureSampleData(){
   if(load(STORE.advice).length===0){
-    save(STORE.advice, [
+    saveData(STORE.advice, [
       {id:1,cat:'alimentation',title:'Choisir une alimentation adaptée',content:'Adapter les rations selon l\'âge, le poids et l\'activité.', ownerId: null},
       {id:2,cat:'soins',title:'Toilettage régulier',content:'Brossage hebdomadaire pour la plupart des races.', ownerId: null},
       {id:3,cat:'prevention',title:'Vaccinations',content:'Consulter un vétérinaire pour le calendrier vaccinal.', ownerId: null},
@@ -96,20 +211,20 @@ function ensureSampleData(){
     ])
   }
   if(load(STORE.partners).length===0){
-    save(STORE.partners, [
+    saveData(STORE.partners, [
       {id:1,type:'Association',name:'Ami des Animaux',info:'contact@amisanimaux.org'},
       {id:2,type:'Vétérinaire',name:'Clinique VetCentre',info:'+33 1 23 45 67 89'}
     ])
   }
   if(load(STORE.events).length===0){
-    save(STORE.events, [
+    saveData(STORE.events, [
       {id:1,title:'Journée d\'adoption',date:new Date().toISOString().slice(0,10),desc:'Rencontrez des associations locales.'}
     ])
   }
   // seed a default admin account (local only)
   if(load(STORE.users).length===0){
     const admin = {id:Date.now(), pseudo:'admin', email:'admin@local', password:'admin123', animals:[], gallery:[], profilePhoto:null, isAdmin:true}
-    save(STORE.users, [admin])
+    saveData(STORE.users, [admin])
   }
 }
 
@@ -120,6 +235,53 @@ function $all(s){return Array.from(document.querySelectorAll(s))}
 function showAuth(mode){
   $('#loginForm').style.display = mode==='login' ? 'block' : 'none'
   $('#registerForm').style.display = mode==='register' ? 'block' : 'none'
+}
+
+// Export / Import / Reset helpers to share app state between testers
+function exportState(){
+  const state = {
+    users: load(STORE.users),
+    advice: load(STORE.advice),
+    partners: load(STORE.partners),
+    events: load(STORE.events)
+  }
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'animalerie-state.json'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+function importStateFile(file){
+  const r = new FileReader()
+  r.onload = ()=>{
+    try{
+      const obj = JSON.parse(r.result)
+      if(obj.users) save(STORE.users, obj.users)
+      if(obj.advice) save(STORE.advice, obj.advice)
+      if(obj.partners) save(STORE.partners, obj.partners)
+      if(obj.events) save(STORE.events, obj.events)
+      alert('État importé avec succès. La page va se recharger.')
+      location.reload()
+    }catch(err){ alert('Fichier JSON invalide.') }
+  }
+  r.onerror = ()=> alert('Impossible de lire le fichier')
+  r.readAsText(file)
+}
+
+function resetData(){
+  if(!confirm('Confirmez-vous la réinitialisation complète des données locales ?')) return
+  localStorage.removeItem(STORE.users)
+  localStorage.removeItem(STORE.advice)
+  localStorage.removeItem(STORE.partners)
+  localStorage.removeItem(STORE.events)
+  localStorage.removeItem(STORE.session)
+  alert('Données locales supprimées. La page va se recharger.')
+  location.reload()
 }
 
 function showMainApp(logged=false){
@@ -151,10 +313,10 @@ function switchPanel(id){
 
 // Account
 function renderProfile(){
-  const users = load(STORE.users)
-  const out = $('#profile')
-  if(users.length===0){ out.innerHTML = '<p>Aucun compte enregistré.</p>'; return }
-  const u = users[users.length-1]
+        const list = load(STORE.users)
+        const u2 = list[list.length-1]
+        u2.gallery.splice(i,1)
+        saveData(STORE.users, list)
   let animalsHtml = 'Aucun animal.'
   if(u.animals && u.animals.length > 0){
     animalsHtml = u.animals.map(a=>`${a.name} (${a.type}${a.age ? ', ' + a.age + ' ans' : ''})`).join(', ')
@@ -163,7 +325,7 @@ function renderProfile(){
 }
 
 function renderAnimalsList(){
-  const users = load(STORE.users)
+        saveData(STORE.users, users2)
   if(users.length === 0) return
   const u = users[users.length-1]
   const list = $('#profileAnimalsList')
@@ -427,7 +589,7 @@ function initAuthHandlers(){
     
     const newUser = {id:Date.now(), pseudo, email, password, animals, gallery: [], profilePhoto: null, isAdmin: false}
     users.push(newUser)
-    save(STORE.users, users)
+    saveData(STORE.users, users)
     save(STORE.session, {id:newUser.id, email:newUser.email, pseudo:newUser.pseudo})
     showMainApp(true)
     initMainHandlers()
@@ -463,6 +625,51 @@ function initMainHandlers(){
     const nav = $('#mainNav')
     nav.style.display = nav.style.display === 'none' ? 'block' : 'none'
   })
+
+  // export/import/reset buttons
+  const exportBtn = $('#exportBtn')
+  const importBtn = $('#importBtn')
+  const importFile = $('#importFile')
+  const resetDataBtn = $('#resetDataBtn')
+  const syncBtn = $('#syncBtn')
+  if(exportBtn) exportBtn.addEventListener('click', e=>{ e.preventDefault(); exportState() })
+  if(importBtn && importFile){ importBtn.addEventListener('click', e=>{ e.preventDefault(); importFile.click() }) }
+  if(importFile){ importFile.addEventListener('change', e=>{ const f = e.target.files[0]; if(f) importStateFile(f); importFile.value = '' }) }
+  if(resetDataBtn) resetDataBtn.addEventListener('click', e=>{ e.preventDefault(); resetData() })
+  
+  // Sync button: pull from Supabase then push back
+  if(syncBtn){
+    syncBtn.addEventListener('click', async e=>{ 
+      e.preventDefault()
+      console.log('[SYNC] click détecté')
+      alert('Synchronisation en cours...')
+      const original = syncBtn.textContent
+      syncBtn.textContent = '⟳ Synchronisation...'
+      syncBtn.disabled = true
+      try{
+        // Push local -> Supabase, puis Pull Supabase -> local pour cohérence
+        const pushOk = await pushStateToSupabase()
+        console.log('[SYNC] pushOk =', pushOk)
+        const pullOk = await pullStateFromSupabase()
+        console.log('[SYNC] pullOk =', pullOk)
+        // Refresh UI
+        renderProfile()
+        renderAdvice()
+        renderPartners()
+        renderEvents()
+        renderGallery()
+        renderAnimalsList()
+        if(pullOk) alert('Données synchronisées (push/pull) avec Supabase.')
+        else alert('Synchronisation partielle : push OK, pull KO (voir console).')
+      }catch(err){
+        console.error('Erreur sync:', err)
+        alert('Erreur sync: ' + err.message)
+      } finally {
+        syncBtn.textContent = original
+        syncBtn.disabled = false
+      }
+    })
+  }
 
   $all('nav button, .menuLink').forEach(btn=>btn.addEventListener('click',()=>{ 
     switchPanel(btn.dataset.target)
@@ -505,7 +712,7 @@ function initMainHandlers(){
         const data = await readFileAsDataURL(f)
         const users = load(STORE.users)
         const last = users[users.length-1]
-        if(last){ last.profilePhoto = data; save(STORE.users, users); renderGallery() }
+        if(last){ last.profilePhoto = data; saveData(STORE.users, users); renderGallery() }
       }catch(err){ console.error(err) }
     })
   }
@@ -538,7 +745,7 @@ function initMainHandlers(){
           total += size
         }catch(err){ console.error(err) }
       }
-      save(STORE.users, users)
+      saveData(STORE.users, users)
       renderGallery()
       galleryInput.value = ''
     })
@@ -558,7 +765,7 @@ function initMainHandlers(){
     const lastUser = users[users.length-1]
     if(lastUser){
       lastUser.animals = animals
-      save(STORE.users, users)
+      saveData(STORE.users, users)
       renderProfile()
       // hide section after saving
       $('#profileAnimalsSection').style.display = 'none'
@@ -717,7 +924,7 @@ function initMainHandlers(){
           if(!confirm(`Promouvoir ${target.pseudo||target.email} en administratrice ?`)) return
           target.isAdmin = true
         }
-        save(STORE.users, users)
+        saveData(STORE.users, users)
         renderAdminList()
         // refresh advice/partners/events UI
         renderAdvice(); renderPartners(); renderEvents()
@@ -740,7 +947,7 @@ function initMainHandlers(){
       const ownerId = adminUser ? adminUser.id : null
       const list = load(STORE.advice)
       list.push({id:Date.now(), title, cat, content, ownerId})
-      save(STORE.advice, list)
+      saveData(STORE.advice, list)
       $('#adviceTitle').value=''; $('#adviceContent').value=''
       renderAdvice()
     })
@@ -755,7 +962,7 @@ function initMainHandlers(){
         return
       }
       const name = $('#partnerName').value.trim(); const type = $('#partnerType').value; const info = $('#partnerInfo').value.trim()
-      const list = load(STORE.partners); list.push({id:Date.now(), name, type, info}); save(STORE.partners, list); renderPartners();
+      const list = load(STORE.partners); list.push({id:Date.now(), name, type, info}); saveData(STORE.partners, list); renderPartners();
       $('#partnerName').value=''; $('#partnerInfo').value=''
     })
   }
@@ -770,7 +977,7 @@ function initMainHandlers(){
       }
       const title = $('#eventTitle').value.trim(); const date = $('#eventDate').value; const desc = $('#eventDesc').value.trim()
       if(!date){ alert('Sélectionnez une date'); return }
-      const list = load(STORE.events); list.push({id:Date.now(), title, date, desc}); save(STORE.events, list); renderEvents();
+      const list = load(STORE.events); list.push({id:Date.now(), title, date, desc}); saveData(STORE.events, list); renderEvents();
       $('#eventTitle').value=''; $('#eventDesc').value=''; $('#eventDate').value=''
     })
   }
@@ -785,7 +992,7 @@ function initMainHandlers(){
         const id = parseInt(t.dataset.id)
         if(!confirm('Confirmer la suppression de cette fiche ?')) return
         const list = load(STORE.advice).filter(a=>a.id !== id)
-        save(STORE.advice, list)
+        saveData(STORE.advice, list)
         renderAdvice()
       }
       if(t.matches('.editAdvice')){
@@ -800,7 +1007,7 @@ function initMainHandlers(){
         if(newContent === null) return
         item.title = newTitle.trim()
         item.content = newContent.trim()
-        save(STORE.advice, list)
+        saveData(STORE.advice, list)
         renderAdvice()
       }
     })
@@ -815,7 +1022,7 @@ function initMainHandlers(){
         const id = parseInt(t.dataset.id)
         if(!confirm('Confirmer la suppression de ce partenaire ?')) return
         const list = load(STORE.partners).filter(p=>p.id !== id)
-        save(STORE.partners, list)
+        saveData(STORE.partners, list)
         renderPartners()
       }
       if(t.matches('.editPartner')){
@@ -833,7 +1040,7 @@ function initMainHandlers(){
         item.name = newName.trim()
         item.type = newType.trim()
         item.info = newInfo.trim()
-        save(STORE.partners, list)
+        saveData(STORE.partners, list)
         renderPartners()
       }
     })
@@ -848,7 +1055,7 @@ function initMainHandlers(){
         const id = parseInt(t.dataset.id)
         if(!confirm('Confirmer la suppression de cet événement ?')) return
         const list = load(STORE.events).filter(ev=>ev.id !== id)
-        save(STORE.events, list)
+        saveData(STORE.events, list)
         renderEvents()
       }
       if(t.matches('.editEvent')){
@@ -866,7 +1073,7 @@ function initMainHandlers(){
         item.title = newTitle.trim()
         item.date = newDate.trim()
         item.desc = newDesc.trim()
-        save(STORE.events, list)
+        saveData(STORE.events, list)
         renderEvents()
       }
     })
@@ -874,9 +1081,24 @@ function initMainHandlers(){
 }
 
 // Init
-(function(){
+(async function(){
   const session = load(STORE.session)
-  ensureSampleData();
+  // initialize Supabase client if the CDN is available
+  initSupabase()
+
+  // Tenter de récupérer l'état Supabase en premier
+  let pulled = false
+  if(supabaseClient){
+    pulled = await pullStateFromSupabase()
+  }
+  // Si rien récupéré, on seed et on pousse vers Supabase
+  if(!pulled){
+    ensureSampleData()
+    if(supabaseClient){
+      await pushStateToSupabase()
+    }
+  }
+
   initAuthHandlers();
   
   // Show main app to visitors; if a session exists consider user logged in
